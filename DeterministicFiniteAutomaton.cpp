@@ -60,7 +60,22 @@ void DeterministicFiniteAutomaton::PrintAutomaton() const
     }
 }
 
-bool DeterministicFiniteAutomaton::CheckWord(const std::string& word) const
-{
+bool DeterministicFiniteAutomaton::CheckWord(const std::string& word) {
 
+    State currentState = initialState;
+    char c = word[0];
+    if (Delta[currentState].find(c) == Delta[currentState].end()) {
+        return false;
+    }
+    currentState = Delta[currentState][c];
+    for (int i = 1; i < word.length(); i++) {
+        if (Delta[currentState].find(word[i]) == Delta[currentState].end()) {
+            return false;
+        }
+        currentState = Delta[currentState][word[i]];
+    }
+    if (finalStates.count(currentState) == 0) {
+        return false;
+    }
+    return true;
 }

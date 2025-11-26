@@ -15,7 +15,7 @@ private:
     std::set<Symbol>Sigma;  //alfabetul din care este format cuvantul
     TransitionFunction Delta; // functia de tranzitie,inca nu stiu exact ce e
     State initialState; //starea initial
-    std::set<State>finalStates; // multimea starilor finale
+    std::set<State> finalStates; // multimea starilor finale
 
 
 public:
@@ -30,6 +30,6 @@ public:
 
     bool VerifyAutomaton()const;
     void PrintAutomaton()const;
-    bool CheckWord(const std::string&word)const;
+    bool CheckWord(const std::string&word);
 
 };
