@@ -45,7 +45,7 @@ void DeterministicFiniteAutomaton::PrintAutomaton() const
         std::cout<<"| "<<*it<<"  ";
     }
     std::cout<<std::endl;
-    std::cout<<"---|----|----";
+    std::cout<<"---|----|---";
     std::cout<<std::endl;
 
     for (const auto& state_entry : Delta)

@@ -4,12 +4,14 @@
 int main()
 {
     DeterministicFiniteAutomaton dfa;
+    std::string word;
     std::set<State> Q = {"q0", "q1"};
 
     std::set<Symbol> Sigma = {'a', 'b'};
 
     TransitionFunction Delta;
-    //aaa
+
+    std::cout << "Tabelul de tranzitii al automatului: " << std::endl;
 
     Delta["q0"]['a'] = "q1";
     Delta["q0"]['b'] = "q0";
@@ -34,12 +36,21 @@ int main()
 
     dfa.setAutomaton(Q, Sigma, Delta, initialState, finalStates);
     dfa.PrintAutomaton();
-    if (dfa.CheckWord("aca") == true) {
-        std::cout << "Cuvantul este acceptat de automat." << std::endl;
-    } else {
-        std::cout << "Cuvantul nu este acceptat de automat." << std::endl;
-    }
 
+    while (word != "exit") {
+        std::cout << "Enter word: ";
+        std::cin >> word;
+
+        if (word == "exit") {
+            break;
+        }
+
+        if (dfa.CheckWord(word) == true) {
+            std::cout << "Cuvantul este acceptat de automat." << std::endl;
+        } else {
+            std::cout << "Cuvantul nu este acceptat de automat." << std::endl;
+        }
+    }
 
     return 0;
 }
