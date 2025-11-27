@@ -5,4 +5,5 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(Automat_Finit_Determinist main.cpp
         DeterministicFiniteAutomaton.h
-        DeterministicFiniteAutomaton.cpp)
+        DeterministicFiniteAutomaton.cpp
+        RegexToDFA.cpp)
