@@ -100,7 +100,7 @@ private:
 
 
 public:
-    PostFixToAFN(const std::string& postfix) {
+    std::map<char,std::map<char,char>>PostFixToAFN(const std::string& postfix) {
         std::stack<char> opStack;
 
         for (int index = 0; index < postfix.length(); index++)
