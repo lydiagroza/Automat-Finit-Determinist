@@ -1,490 +1,525 @@
 
+#include "RegexToDFA.h"
+
 #include <stack>
-#include<vector>
-#include"RegexToDFA.h"
+
+#include <vector>
+
+#include <algorithm>
+
+#include <sstream>
+
+
 
 int RegexToDFA::stateCounter = 0;
 
+
+
+// Adds explicit concatenation operators ('.') to the regex string
+
 std::string RegexToDFA::addConcatOperator(const std::string& regex) {
+
     std::string result;
+
     for (size_t i = 0; i < regex.length(); i++) {
+
         result += regex[i];
 
         if (i + 1 < regex.length()) {
+
             char curr = regex[i];
+
             char next = regex[i + 1];
 
-            // Add '.' for concatenation between:
-            // letter/*/)/] followed by letter/(
-            if ((isalnum(curr) || curr == '*' || curr == ')') &&
-                (isalnum(next) || next == '(')) {
+            if ((isalnum(curr) || curr == '*' || curr == ')' || curr == '+') && (isalnum(next) || next == '(')) {
+
                 result += '.';
-                }
-        }
-    }
-    return result;
-}
 
-int RegexToDFA::Priority(char op){
-    switch (op) {
-    case '.': return 1;
-    case '|': return 2;
-    case '*': return 3;
-    default: return 0;
-    }
-
-}
-
-std::string RegexToDFA:: regexToPostfix(const std::string& regex) {
-        std::string postfix;
-        std::stack<char> opStack;
-
-        for (char c : regex) {
-            if (isalnum(c)) {
-                postfix += c;
-            } else if (c == '(') {
-                opStack.push(c);
-            } else if (c == ')') {
-                while (!opStack.empty() && opStack.top() != '(') {
-                    postfix += opStack.top();
-                    opStack.pop();
-                }
-                if (!opStack.empty()) opStack.pop(); // Remove '('
-            } else { // operator
-                while (!opStack.empty() && opStack.top() != '(' &&
-                       Priority(opStack.top()) >= Priority(c)) {
-                    postfix += opStack.top();
-                    opStack.pop();
-                       }
-                opStack.push(c);
             }
+
         }
 
-        while (!opStack.empty()) {
-            postfix += opStack.top();
-            opStack.pop();
-        }
-
-        return postfix;
     }
 
-NFA RegexToDFA::postfixNFA(const std::string& postfix){
+    return result;
+
+}
+
+
+
+// Determines operator precedence for postfix conversion
+
+int RegexToDFA::Priority(char op) {
+
+    switch (op) {
+
+        case '+':
+
+        case '*': return 3;
+
+        case '.': return 2;
+
+        case '|': return 1;
+
+        default: return 0;
+
+    }
+
+}
+
+
+
+// Converts an infix regex string to postfix
+
+std::string RegexToDFA::regexToPostfix(const std::string& regex) {
+
+    std::string postfix;
+
+    std::stack<char> opStack;
+
+    std::string processedRegex = addConcatOperator(regex);
+
+
+
+    for (char c : processedRegex) {
+
+        if (isalnum(c)) {
+
+            postfix += c;
+
+        } else if (c == '(') {
+
+            opStack.push(c);
+
+        } else if (c == ')') {
+
+            while (!opStack.empty() && opStack.top() != '(') {
+
+                postfix += opStack.top();
+
+                opStack.pop();
+
+            }
+
+            if (!opStack.empty()) opStack.pop();
+
+        } else {
+
+            while (!opStack.empty() && opStack.top() != '(' && Priority(opStack.top()) >= Priority(c)) {
+
+                postfix += opStack.top();
+
+                opStack.pop();
+
+            }
+
+            opStack.push(c);
+
+        }
+
+    }
+
+
+
+    while (!opStack.empty()) {
+
+        postfix += opStack.top();
+
+        opStack.pop();
+
+    }
+
+    return postfix;
+
+}
+
+
+
+// Public method to get the postfix expression
+
+std::string RegexToDFA::getPostfix(const std::string& regex) {
+
+    return regexToPostfix(regex);
+
+}
+
+
+
+// Public method to get the syntax tree (returns postfix representation)
+
+std::string RegexToDFA::getSyntaxTree(const std::string& regex) {
+
+    return getPostfix(regex);
+
+}
+
+
+
+
+
+// --- NFA to DFA Conversion ---
+
+
+
+NFA RegexToDFA::postfixNFA(const std::string& postfix) {
+
     std::stack<NFA> nfaStack;
 
-    for (char c : postfix)
-    {
-        if (isalnum(c))
-        {
-            NFA nfa;
-            State start = getNewState();
-            State final = getNewState();
+    for (char c : postfix) {
 
-            nfa.states.insert(start);
-            nfa.states.insert(final);
+        if (isalnum(c)) {
+
+            NFA nfa;
+
+            State s0 = getNewState();
+
+            State s1 = getNewState();
+
+            nfa.states = {s0, s1};
+
             nfa.symbols.insert(c);
-            nfa.transitions[start][c].insert(final);
-            nfa.startState = start;
-            nfa.finalStates.insert(final);
 
-            nfaStack.push(nfa);  // <-- THIS WAS MISSING!
+            nfa.startState = s0;
 
-        } else if (c == '|')
-        {
+            nfa.finalStates = {s1};
+
+            nfa.transitions[s0][c] = {s1};
+
+            nfaStack.push(nfa);
+
+        } else if (c == '.') {
+
             NFA nfa2 = nfaStack.top(); nfaStack.pop();
+
             NFA nfa1 = nfaStack.top(); nfaStack.pop();
 
-            NFA nfa;
-            State newState = getNewState();
-            State newFinal = getNewState();
+            nfa1.states.insert(nfa2.states.begin(), nfa2.states.end());
 
-            nfa.states.insert(newState);
-            nfa.states.insert(newFinal);
-            nfa.states.insert(nfa1.states.begin(), nfa1.states.end());
-            nfa.states.insert(nfa2.states.begin(), nfa2.states.end());
+            nfa1.symbols.insert(nfa2.symbols.begin(), nfa2.symbols.end());
 
-            nfa.symbols.insert(nfa1.symbols.begin(), nfa1.symbols.end());
-            nfa.symbols.insert(nfa2.symbols.begin(), nfa2.symbols.end());
+            for (const auto& finalState : nfa1.finalStates) {
 
-            nfa.transitions[newState]['\0'].insert(nfa1.startState);
-            nfa.transitions[newState]['\0'].insert(nfa2.startState);
+                nfa1.transitions[finalState]['\0'].insert(nfa2.startState);
 
-            for (const auto& index : nfa1.finalStates)
-            {
-                nfa.transitions[index]['\0'].insert(newFinal);
-            }
-            for (const auto& index : nfa2.finalStates)
-            {
-                nfa.transitions[index]['\0'].insert(newFinal);
             }
 
-            for (const auto& trans : nfa1.transitions)
-            {
-                for (const auto& symbol : trans.second)
-                {
-                    nfa.transitions[trans.first][symbol.first].insert(symbol.second.begin(), symbol.second.end());
-                }
-            }
+            nfa1.finalStates = nfa2.finalStates;
 
-            for (const auto& trans : nfa2.transitions)
-            {
-                for (const auto& symbol : trans.second)
-                {
-                    nfa.transitions[trans.first][symbol.first].insert(symbol.second.begin(), symbol.second.end());
-                }
-            }
+            nfa1.transitions.insert(nfa2.transitions.begin(), nfa2.transitions.end());
 
-            nfa.startState = newState;
-            nfa.finalStates.insert(newFinal);
+            nfaStack.push(nfa1);
 
-            nfaStack.push(nfa);
+        } else if (c == '|') {
 
-        } else if (c == '.')
-        {
             NFA nfa2 = nfaStack.top(); nfaStack.pop();
+
             NFA nfa1 = nfaStack.top(); nfaStack.pop();
 
-            NFA nfa;
-            nfa.states.insert(nfa1.states.begin(), nfa1.states.end());
-            nfa.states.insert(nfa2.states.begin(), nfa2.states.end());
+            NFA newNfa;
 
-            nfa.symbols.insert(nfa1.symbols.begin(), nfa1.symbols.end());
-            nfa.symbols.insert(nfa2.symbols.begin(), nfa2.symbols.end());
+            State s0 = getNewState();
 
-            for (const auto& index : nfa1.finalStates)
-            {
-                nfa.transitions[index]['\0'].insert(nfa2.startState);
+            State s1 = getNewState();
+
+            newNfa.states = {s0, s1};
+
+            newNfa.states.insert(nfa1.states.begin(), nfa1.states.end());
+
+            newNfa.states.insert(nfa2.states.begin(), nfa2.states.end());
+
+            newNfa.symbols.insert(nfa1.symbols.begin(), nfa1.symbols.end());
+
+            newNfa.symbols.insert(nfa2.symbols.begin(), nfa2.symbols.end());
+
+            newNfa.startState = s0;
+
+            newNfa.finalStates = {s1};
+
+            newNfa.transitions[s0]['\0'] = {nfa1.startState, nfa2.startState};
+
+            for (const auto& finalState : nfa1.finalStates) {
+
+                newNfa.transitions[finalState]['\0'].insert(s1);
+
             }
 
-            for (const auto& trans : nfa1.transitions)
-            {
-                for (const auto& symbol : trans.second)
-                {
-                    nfa.transitions[trans.first][symbol.first].insert(symbol.second.begin(), symbol.second.end());
-                }
+            for (const auto& finalState : nfa2.finalStates) {
+
+                newNfa.transitions[finalState]['\0'].insert(s1);
+
             }
 
-            for (const auto& trans : nfa2.transitions)
-            {
-                for (const auto& symbol : trans.second)
-                {
-                    nfa.transitions[trans.first][symbol.first].insert(symbol.second.begin(), symbol.second.end());
-                }
-            }
+            newNfa.transitions.insert(nfa1.transitions.begin(), nfa1.transitions.end());
 
-            nfa.startState = nfa1.startState;
-            nfa.finalStates = nfa2.finalStates;
+            newNfa.transitions.insert(nfa2.transitions.begin(), nfa2.transitions.end());
 
-            nfaStack.push(nfa);
+            nfaStack.push(newNfa);
 
-        } else if (c == '*')
-        {
+        } else if (c == '*') {
+
             NFA nfa1 = nfaStack.top(); nfaStack.pop();
 
-            NFA nfa;
-            State newState = getNewState();
-            State newFinal = getNewState();
+            NFA newNfa;
 
-            nfa.states.insert(newState);
-            nfa.states.insert(newFinal);
-            nfa.states.insert(nfa1.states.begin(), nfa1.states.end());
+            State s0 = getNewState();
 
-            nfa.symbols = nfa1.symbols;
+            State s1 = getNewState();
 
-            nfa.transitions[newState]['\0'].insert(nfa1.startState);
-            nfa.transitions[newState]['\0'].insert(newFinal);
+            newNfa.states = {s0, s1};
 
-            for (const auto& index : nfa1.finalStates)
-            {
-                nfa.transitions[index]['\0'].insert(nfa1.startState);
-                nfa.transitions[index]['\0'].insert(newFinal);
+            newNfa.states.insert(nfa1.states.begin(), nfa1.states.end());
+
+            newNfa.symbols.insert(nfa1.symbols.begin(), nfa1.symbols.end());
+
+            newNfa.startState = s0;
+
+            newNfa.finalStates = {s1};
+
+            newNfa.transitions[s0]['\0'] = {nfa1.startState, s1};
+
+            for (const auto& finalState : nfa1.finalStates) {
+
+                newNfa.transitions[finalState]['\0'].insert(nfa1.startState);
+
+                newNfa.transitions[finalState]['\0'].insert(s1);
+
             }
 
-            for (const auto& trans : nfa1.transitions) {
-                for (const auto& symb : trans.second) {
-                    nfa.transitions[trans.first][symb.first].insert(symb.second.begin(), symb.second.end());
-                }
-            }
+            newNfa.transitions.insert(nfa1.transitions.begin(), nfa1.transitions.end());
 
-            nfa.startState = newState;
-            nfa.finalStates.insert(newFinal);
+            nfaStack.push(newNfa);
 
-            nfaStack.push(nfa);
         }
+
     }
 
     return nfaStack.top();
+
 }
 
-std::set<State> RegexToDFA::lambdaClosure(const std::set<State>& states,
-                                          const std::map<State, std::map<Symbol, std::set<State>>>& transitions){
+
+
+
+
+std::set<State> RegexToDFA::lambdaClosure(const std::set<State>& states, const std::map<State, std::map<Symbol, std::set<State>>>& transitions) {
+
     std::set<State> closure = states;
+
     std::stack<State> stack;
 
-    for (const auto& s : states)
-    {
+    for (const auto& s : states) {
+
         stack.push(s);
-    }
 
-    while (!stack.empty())
-    {
-        State current = stack.top();
-        stack.pop();
-
-        if (transitions.count(current) && transitions.at(current).count('\0'))
-        {
-            for (const auto& nextState : transitions.at(current).at('\0'))
-            {
-                if (closure.find(nextState) == closure.end())
-                {
-                    closure.insert(nextState);
-                    stack.push(nextState);
-                }
-            }
-        }
-    }
-
-    return closure;
-}
-
-std::string RegexToDFA::setToString(const std::set<State>& stateSet) {
-    if (stateSet.empty()) return "{}";
-
-    std::string result = "{";
-    bool first = true;
-    for (const auto& s : stateSet) {
-        if (!first) result += ",";
-        result += s;
-        first = false;
-    }
-    result += "}";
-    return result;
-}
-
-void RegexToDFA::NFATODFA(const NFA& nfa,
-                          std::set<State>& dfaStates,
-                          std::set<Symbol>& dfaSymbols,
-                          TransitionFunction& dfaTransitions,
-                          State& dfaStartState,
-                          std::set<State>& dfaFinalStates)
-{
-    dfaSymbols = nfa.symbols;
-
-    std::map<std::set<State>, State> setToStateName;
-    std::stack<std::set<State>> stack;
-
-    std::set<State> startSet = lambdaClosure({nfa.startState}, nfa.transitions);
-    dfaStartState = setToString(startSet);
-    setToStateName[startSet] = dfaStartState;
-    dfaStates.insert(dfaStartState);
-    stack.push(startSet);
-
-    for (const auto& s : startSet) {
-        if (nfa.finalStates.count(s)) {
-            dfaFinalStates.insert(dfaStartState);
-            break;
-        }
     }
 
     while (!stack.empty()) {
-        std::set<State> currentSet = stack.top();
+
+        State current = stack.top();
+
         stack.pop();
 
-        State currentDFAState = setToStateName[currentSet];
+        if (transitions.count(current) && transitions.at(current).count('\0')) {
 
-        for (char symbol : dfaSymbols) {
-            std::set<State> nextSet;
+            for (const auto& nextState : transitions.at(current).at('\0')) {
 
-            // Find all states reachable by symbol from current set
-            for (const auto& s : currentSet) {
-                if (nfa.transitions.count(s) && nfa.transitions.at(s).count(symbol)) {
-                    for (const auto& next : nfa.transitions.at(s).at(symbol)) {
-                        nextSet.insert(next);
-                    }
-                }
-            }
+                if (closure.find(nextState) == closure.end()) {
 
-            // Apply epsilon closure
-            nextSet = lambdaClosure(nextSet, nfa.transitions);
+                    closure.insert(nextState);
 
-            if (!nextSet.empty()) {
-                State nextDFAState;
+                    stack.push(nextState);
 
-                if (setToStateName.find(nextSet) == setToStateName.end()) {
-                    nextDFAState = setToString(nextSet);
-                    setToStateName[nextSet] = nextDFAState;
-                    dfaStates.insert(nextDFAState);
-                    stack.push(nextSet);
-
-                    // Check if this is an accepting state
-                    for (const auto& s : nextSet) {
-                        if (nfa.finalStates.count(s)) {
-                            dfaFinalStates.insert(nextDFAState);
-                            break;
-                        }
-                    }
-                } else {
-                    nextDFAState = setToStateName[nextSet];
                 }
 
-                dfaTransitions[currentDFAState][symbol] = nextDFAState;
             }
+
         }
+
     }
+
+    return closure;
+
 }
 
-bool RegexToDFA::convertRegexToDFA(const std::string& regex,
-                                   std::set<State>& states,
-                                   std::set<Symbol>& alphabet,
-                                   TransitionFunction& delta,
-                                   State& initialState,
-                                   std::set<State>& finalStates) {
+
+
+std::set<State> RegexToDFA::Move(const NFA& nfa, const std::set<State>& states, Symbol symbol) {
+
+    std::set<State> result;
+
+    for (const auto& state : states) {
+
+        if (nfa.transitions.count(state) && nfa.transitions.at(state).count(symbol)) {
+
+            const auto& nextStates = nfa.transitions.at(state).at(symbol);
+
+            result.insert(nextStates.begin(), nextStates.end());
+
+        }
+
+    }
+
+    return result;
+
+}
+
+
+
+std::string RegexToDFA::setToString(const std::set<State>& stateSet) {
+
+    std::string str = "{";
+
+    bool first = true;
+
+    for (const auto& s : stateSet) {
+
+        if (!first) str += ",";
+
+        str += s;
+
+        first = false;
+
+    }
+
+    str += "}";
+
+    return str;
+
+}
+
+
+
+void RegexToDFA::NFATODFA(const NFA& nfa, std::set<State>& dfaStates, std::set<Symbol>& dfaAlphabet, TransitionFunction& dfaTransitions, State& dfaStartState, std::set<State>& dfaFinalStates) {
+
+    dfaAlphabet = nfa.symbols;
+
+    dfaAlphabet.erase('\0');
+
+
+
+    std::map<std::set<State>, State> stateSetMap;
+
+    std::stack<std::set<State>> unmarkedStates;
+
+
+
+    std::set<State> startClosure = lambdaClosure({nfa.startState}, nfa.transitions);
+
+    dfaStartState = setToString(startClosure);
+
+    stateSetMap[startClosure] = dfaStartState;
+
+    dfaStates.insert(dfaStartState);
+
+    unmarkedStates.push(startClosure);
+
+    
+
+    for (const auto& s : startClosure) {
+
+        if (nfa.finalStates.count(s)) {
+
+            dfaFinalStates.insert(dfaStartState);
+
+            break;
+
+        }
+
+    }
+
+
+
+    while (!unmarkedStates.empty()) {
+
+        std::set<State> currentSet = unmarkedStates.top();
+
+        unmarkedStates.pop();
+
+        State currentStateName = stateSetMap[currentSet];
+
+
+
+        for (Symbol symbol : dfaAlphabet) {
+
+            std::set<State> moveRes = Move(nfa, currentSet, symbol);
+
+            std::set<State> nextSet = lambdaClosure(moveRes, nfa.transitions);
+
+
+
+            if (nextSet.empty()) continue;
+
+
+
+            if (stateSetMap.find(nextSet) == stateSetMap.end()) {
+
+                State nextStateName = setToString(nextSet);
+
+                stateSetMap[nextSet] = nextStateName;
+
+                dfaStates.insert(nextStateName);
+
+                unmarkedStates.push(nextSet);
+
+                for (const auto& s : nextSet) {
+
+                    if (nfa.finalStates.count(s)) {
+
+                        dfaFinalStates.insert(nextStateName);
+
+                        break;
+
+                    }
+
+                }
+
+            }
+
+            dfaTransitions[currentStateName][symbol] = stateSetMap[nextSet];
+
+        }
+
+    }
+
+}
+
+
+
+bool RegexToDFA::convertRegexToDFA(const std::string& regex, std::set<State>& states, std::set<Symbol>& alphabet, TransitionFunction& delta, State& initialState, std::set<State>& finalStates) {
+
     try {
-        stateCounter = 0; // Reset counter
 
-        // Step 1: Add explicit concatenation
-        std::string withConcat = addConcatOperator(regex);
+        stateCounter = 0;
 
-        // Step 2: Convert to postfix
-        std::string postfix = regexToPostfix(withConcat);
+        std::string postfix = regexToPostfix(regex);
 
-        std::cout << "Postfix expression: " << postfix << std::endl;
-
-        // Step 3: Build NFA
         NFA nfa = postfixNFA(postfix);
 
-        // Step 4: Convert NFA to DFA
         NFATODFA(nfa, states, alphabet, delta, initialState, finalStates);
 
         return true;
+
     } catch (const std::exception& e) {
-        std::cerr << "Error converting regex to DFA: " << e.what() << std::endl;
+
+        std::cerr << "Error during Regex to DFA conversion: " << e.what() << std::endl;
+
         return false;
+
     }
 
 }
 
-void RegexToDFA::printDFA(const std::set<State>& states,
-                          const std::set<Symbol>& alphabet,
-                          const TransitionFunction& delta,
-                          const State& initialState,
-                          const std::set<State>& finalStates) {
 
-    std::cout << "\n╔════════════════════════════════════════════════════════╗" << std::endl;
-    std::cout << "║              DFA TRANSITION TABLE                      ║" << std::endl;
-    std::cout << "╚════════════════════════════════════════════════════════╝\n" << std::endl;
 
-    // Calculate column width based on longest state name
-    size_t maxStateLen = 8;
-    for (const auto& state : states) {
-        if (state.length() > maxStateLen) {
-            maxStateLen = state.length();
-        }
-    }
+void RegexToDFA::printDFA(const std::set<State>& states, const std::set<Symbol>& alphabet, const TransitionFunction& delta, const State& initialState, const std::set<State>& finalStates) {
 
-    // Print header with alphabet symbols
-    std::cout << "State";
-    for (size_t i = 5; i < maxStateLen; i++) {
-        std::cout << " ";
-    }
-    std::cout << "  ";
+    // This is a placeholder. The better print function is in DeterministicFiniteAutomaton.cpp
 
-    for (const auto& symbol : alphabet) {
-        std::cout << "| " << symbol << "       ";
-    }
-    std::cout << std::endl;
+    std::cout << "DFA printing is handled by the DeterministicFiniteAutomaton class." << std::endl;
 
-    // Print separator line
-    for (size_t i = 0; i < maxStateLen + 2; i++) {
-        std::cout << "-";
-    }
-    for (size_t i = 0; i < alphabet.size(); i++) {
-        std::cout << "|--------";
-    }
-    std::cout << std::endl;
-
-    // Print each state and its transitions
-    for (const auto& state : states) {
-        // Mark initial state with → and final states with *
-        bool isInitial = (state == initialState);
-        bool isFinal = (finalStates.find(state) != finalStates.end());
-
-        std::string marker = "  ";
-        if (isInitial && isFinal) {
-            marker = "→*";
-        } else if (isInitial) {
-            marker = "→ ";
-        } else if (isFinal) {
-            marker = " *";
-        }
-
-        std::cout << marker;
-
-        // Print state name
-        std::string stateName = state;
-        if (stateName.length() > 15) {
-            stateName = stateName.substr(0, 12) + "...";
-        }
-        std::cout << stateName;
-
-        // Pad to align columns
-        for (size_t i = stateName.length(); i < maxStateLen; i++) {
-            std::cout << " ";
-        }
-
-        // Print transitions for each symbol
-        for (const auto& symbol : alphabet) {
-            std::cout << "| ";
-
-            if (delta.count(state) && delta.at(state).count(symbol)) {
-                std::string nextState = delta.at(state).at(symbol);
-                if (nextState.length() > 6) {
-                    nextState = nextState.substr(0, 5) + "..";
-                }
-                std::cout << nextState;
-
-                // Pad to align
-                for (size_t i = nextState.length(); i < 6; i++) {
-                    std::cout << " ";
-                }
-            } else {
-                std::cout << "---   ";
-            }
-        }
-        std::cout << std::endl;
-    }
-
-    std::cout << "\n" << std::endl;
-
-    // Print legend
-    std::cout << "Legend:" << std::endl;
-    std::cout << "  → : Initial state" << std::endl;
-    std::cout << "  * : Accept/Final state" << std::endl;
-    std::cout << "  →*: Initial and Accept state" << std::endl;
-    std::cout << "  ---: No transition defined" << std::endl;
-
-    // Print statistics
-    std::cout << "\n════════════════════════════════════════" << std::endl;
-    std::cout << "DFA Statistics:" << std::endl;
-    std::cout << "════════════════════════════════════════" << std::endl;
-    std::cout << "  Total states: " << states.size() << std::endl;
-    std::cout << "  Alphabet size: " << alphabet.size() << std::endl;
-    std::cout << "  Alphabet: { ";
-    for (const auto& sym : alphabet) {
-        std::cout << sym << " ";
-    }
-    std::cout << "}" << std::endl;
-    std::cout << "  Initial state: " << initialState << std::endl;
-    std::cout << "  Accept states (" << finalStates.size() << "): ";
-
-    bool first = true;
-    for (const auto& fs : finalStates) {
-        if (!first) std::cout << ", ";
-        std::cout << fs;
-        first = false;
-    }
-    std::cout << std::endl;
-    std::cout << "════════════════════════════════════════\n" << std::endl;
 }
+
+
 
 
 

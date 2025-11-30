@@ -8,4 +8,5 @@ add_executable(Automat_Finit_Determinist
         DeterministicFiniteAutomaton.h
         DeterministicFiniteAutomaton.cpp
         RegexToDFA.cpp
-        RegexToDFA.h)
+        RegexToDFA.h
+        dfa.txt)

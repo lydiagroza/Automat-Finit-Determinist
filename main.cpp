@@ -1,115 +1,133 @@
 #include <iostream>
+#include <fstream>
 #include "DeterministicFiniteAutomaton.h"
 #include "RegexToDFA.h"
 
-int main()
-{
+void printMenu() {
+    std::cout << "\nMenu:\n";
+    std::cout << "1. Afisarea formei poloneze postfixate a expresiei regulate\n";
+    std::cout << "2. Afisarea arborelui sintactic corespunzator expresiei regulate\n";
+    std::cout << "3. Afisarea automatului M atat in consola, cat si intr-un fisier de iesire\n";
+    std::cout << "4. Verificarea unuia sau mai multor cuvinte in automatul M\n";
+    std::cout << "0. Exit\n";
+    std::cout << "Enter your choice: ";
+}
+
+int main() {
+    std::ifstream regexFile("../regex.txt");
+    if (!regexFile.is_open()) {
+        std::cerr << "Error: Could not open regex.txt at '../regex.txt'\n";
+        return 1;
+    }
+
+    std::string regex;
+    std::getline(regexFile, regex);
+    regexFile.close();
+
+    std::cout << "Read Regular Expression from file: '" << regex << "'" << std::endl;
+    if (regex.empty()) {
+        std::cerr << "Error: Regular expression read from file is empty.\n";
+        return 1;
+    }
+
     DeterministicFiniteAutomaton dfa;
-    std::string word;
+    std::set<State> states;
+    std::set<Symbol> alphabet;
+    TransitionFunction delta;
+    State initialState;
+    std::set<State> finalStates;
+
+    std::cout << "Attempting to convert Regex to DFA..." << std::endl;
+    if (!RegexToDFA::convertRegexToDFA(regex, states, alphabet, delta, initialState, finalStates)) {
+        std::cerr << "Failed to convert regex to DFA! (RegexToDFA::convertRegexToDFA returned false)" << std::endl;
+        return 1;
+    }
+    std::cout << "Regex to DFA conversion successful." << std::endl;
+
+    dfa.setAutomaton(states, alphabet, delta, initialState, finalStates);
+
+    std::cout << "Verifying generated DFA..." << std::endl;
+    if (!dfa.VerifyAutomaton()) {
+        std::cerr << "Generated DFA is not valid! (dfa.VerifyAutomaton returned false)" << std::endl;
+        return 1;
+    }
+    std::cout << "DFA verification successful." << std::endl;
+
     int choice;
+    do {
+        printMenu();
+        std::cin >> choice;
 
-    std::cout << "For CheckWord enter 1, for RegexToDFA enter 2: " << std::endl;
-    std::cin >> choice;
-
-    if (choice == 1)
-    {
-        std::set<State> Q = {"q0", "q1", "q2", "q3"};
-        std::set<Symbol> Sigma = {'a', 'b'};
-        TransitionFunction Delta;
-
-        std::cout << "Tabelul de tranzitii al automatului: " << std::endl;
-
-        Delta["q0"]['a'] = "q1";
-        Delta["q0"]['b'] = "q0";
-
-        Delta["q1"]['a'] = "q2";
-        Delta["q1"]['b'] = "q1";
-
-        Delta["q2"]['a'] = "q3";
-        Delta["q2"]['b'] = "q1";
-
-        Delta["q3"]['a'] = "q0";
-        Delta["q3"]['b'] = "q1";
-
-        State initialState = "q0";
-        std::set<State> finalStates = {"q3"};
-
-        dfa.setAutomaton(Q, Sigma, Delta, initialState, finalStates);
-
-        if (!dfa.VerifyAutomaton()) {
-            std::cerr << "Automatul nu este valid!" << std::endl;
-            return 1;
-        }
-
-        dfa.PrintAutomaton();
-
-        while (word != "exit") {
-            std::cout << "Enter word: ";
-            std::cin >> word;
-
-            if (word == "exit") {
+        switch (choice) {
+            case 1: {
+                // Afisarea formei poloneze postfixate
+                std::string postfix = RegexToDFA::getPostfix(regex);
+                std::cout << "Forma poloneza postfixata: " << postfix << std::endl;
                 break;
             }
-
-            if (dfa.CheckWord(word)) {
-                std::cout << "Cuvantul este acceptat de automat." << std::endl;
-            } else {
-                std::cout << "Cuvantul nu este acceptat de automat." << std::endl;
+            case 2: {
+                // Afisarea arborelui sintactic
+                std::string syntaxTree = RegexToDFA::getSyntaxTree(regex);
+                std::cout << "Arborele sintactic (reprezentare postfixata): " << syntaxTree << std::endl;
+                break;
             }
-        }
-    }
-    else if (choice == 2) {
-        std::string regex;
-        std::cout << "Enter Regex (examples: (a|b)*, ab*a, a(b|c)*d): ";
-        std::cin >> regex;
+            case 3: {
+                // Afisarea automatului M
+                dfa.PrintAutomaton();
+                std::ofstream outFile("./dfa.txt");
+                if (outFile.is_open()) {
+                    outFile << "Stari: ";
+                    for (const auto& state : states) outFile << state << " ";
+                    outFile << "\n";
 
-        std::set<State> states;
-        std::set<Symbol> alphabet;
-        TransitionFunction delta;
-        State initialState;
-        std::set<State> finalStates;
+                    outFile << "Alfabet: ";
+                    for (const auto& symbol : alphabet) outFile << symbol << " ";
+                    outFile << "\n";
 
-        if (RegexToDFA::convertRegexToDFA(regex, states, alphabet, delta, initialState, finalStates)) {
-            std::cout << "\nDFA successfully created!" << std::endl;
+                    outFile << "Tranzitii:\n";
+                    for (const auto& transition : delta) {
+                        for (const auto& trans : transition.second) {
+                            outFile << transition.first << " --" << trans.first << "--> " << trans.second << "\n";
+                        }
+                    }
 
-            dfa.setAutomaton(states, alphabet, delta, initialState, finalStates);
+                    outFile << "Stare initiala: " << initialState << "\n";
+                    
+                    outFile << "Stari finale: ";
+                    for (const auto& state : finalStates) outFile << state << " ";
+                    outFile << "\n";
 
-            if (!dfa.VerifyAutomaton()) {
-                std::cerr << "Generated DFA is not valid!" << std::endl;
-                return 1;
-            }
-
-            std::cout << "\nDFA Transition Table:" << std::endl;
-            dfa.PrintAutomaton();
-
-            std::cout << "\nInitial state: " << initialState << std::endl;
-            std::cout << "Accept states: ";
-            for (const auto& fs : finalStates) {
-                std::cout << fs << " ";
-            }
-            std::cout << std::endl;
-
-            // Test words
-            word = "";
-            while (word != "exit") {
-                std::cout << "\nEnter word to test (or 'exit' to quit): ";
-                std::cin >> word;
-
-                if (word == "exit") {
-                    break;
-                }
-
-                if (dfa.CheckWord(word)) {
-                    std::cout << "✓ Word '" << word << "' is ACCEPTED by the automaton." << std::endl;
+                    outFile.close();
+                    std::cout << "DFA also written to ./dfa.txt\n";
                 } else {
-                    std::cout << "✗ Word '" << word << "' is REJECTED by the automaton." << std::endl;
+                    std::cerr << "Could not open dfa.txt for writing in current directory.\n";
                 }
+                break;
             }
-        } else {
-            std::cerr << "Failed to convert regex to DFA!" << std::endl;
-            return 1;
+            case 4: {
+                // Verificarea cuvintelor
+                std::string word;
+                std::cout << "Enter word to check (or 'exit' to stop): ";
+                std::cin >> word;
+                while (word != "exit") {
+                    if (dfa.CheckWord(word)) {
+                        std::cout << "Cuvantul este acceptat de automat.\n";
+                    } else {
+                        std::cout << "Cuvantul nu este acceptat de automat.\n";
+                    }
+                    std::cout << "Enter word to check (or 'exit' to stop): ";
+                    std::cin >> word;
+                }
+
+                break;
+            }
+            case 0:
+                std::cout << "Exiting...\n";
+                break;
+            default:
+                std::cout << "Invalid choice. Please try again.\n";
         }
-    }
+    } while (choice != 0);
 
     return 0;
 }

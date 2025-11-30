@@ -1,4 +1,3 @@
-
 #ifndef AUTOMAT_FINIT_DETERMINIST_REGEXTODFA_H
 #define AUTOMAT_FINIT_DETERMINIST_REGEXTODFA_H
 
@@ -41,8 +40,6 @@ private:
 
     static std::string addConcatOperator(const std::string& regex);
 
-    static std::string regexToPostfix(const std::string& regex);
-
     static NFA postfixNFA(const std::string& postfix);
 
     static std::set<State> lambdaClosure(const std::set<State>& states,
@@ -60,6 +57,9 @@ private:
     static std::string setToString(const std::set<State>& stateSet);
 
 public:
+    static std::string getPostfix(const std::string& regex);
+    static std::string getSyntaxTree(const std::string& regex);
+    static std::string regexToPostfix(const std::string& regex);
 
     static bool convertRegexToDFA(const std::string& regex,
                                    std::set<State>& states,
