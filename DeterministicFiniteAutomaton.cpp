@@ -14,18 +14,15 @@ bool DeterministicFiniteAutomaton::VerifyAutomaton() const
     }
 
     for (const auto& state_entry : Delta) {
-        const State& from_state = state_entry.first; // Starea Sursă
-
-
+        const State& from_state = state_entry.first;
         if (Q.find(from_state) == Q.end()) {
             std::cerr << "Eroare: Starea sursă '" << from_state << "' din Delta nu este în Q." << std::endl;
             return false;
         }
 
         for (const auto& transition : state_entry.second) {
-            const Symbol& symbol = transition.first;    // Simbolul citit
-            const State& to_state = transition.second;  // Starea Destinație
-
+            const Symbol& symbol = transition.first;
+            const State& to_state = transition.second;
             if (Sigma.find(symbol) == Sigma.end()) {
                 std::cerr << "Eroare: Simbolul '" << symbol << "' din Delta nu este în alfabetul Σ." << std::endl;
                 return false;
@@ -46,33 +43,26 @@ void DeterministicFiniteAutomaton::PrintAutomaton() const
     std::cout << "|              DFA TRANSITION TABLE                      |" << std::endl;
     std::cout << "+--------------------------------------------------------+\n" << std::endl;
 
-    // Determine the maximum width needed for state names
     size_t maxStateLen = 0;
     for (const auto& state : Q) {
         if (state.length() > maxStateLen) {
             maxStateLen = state.length();
         }
     }
-    // Also consider the length of the header "State"
     if (maxStateLen < 5) maxStateLen = 5;
 
-    // Set a reasonable maximum to prevent excessively wide tables
     const size_t MAX_DISPLAY_WIDTH = 40;
     size_t displayStateLen = (maxStateLen > MAX_DISPLAY_WIDTH) ? MAX_DISPLAY_WIDTH : maxStateLen;
 
-
-    // Print header with alphabet symbols
     std::cout << "State";
     for (size_t i = 5; i < displayStateLen; i++) {
         std::cout << " ";
     }
     std::cout << "  ";
 
-    // Create a sorted list of symbols
     std::vector<Symbol> sortedSigma(Sigma.begin(), Sigma.end());
     std::sort(sortedSigma.begin(), sortedSigma.end());
 
-    // Determine width for transition columns
     size_t transitionWidth = 0;
     for (const auto& state : Q) {
         for (const auto& symbol : sortedSigma) {
@@ -83,7 +73,7 @@ void DeterministicFiniteAutomaton::PrintAutomaton() const
             }
         }
     }
-    if (transitionWidth < 3) transitionWidth = 3; // for "---"
+    if (transitionWidth < 3) transitionWidth = 3;
     if (transitionWidth > MAX_DISPLAY_WIDTH) transitionWidth = MAX_DISPLAY_WIDTH;
 
 
@@ -94,7 +84,6 @@ void DeterministicFiniteAutomaton::PrintAutomaton() const
     }
     std::cout << std::endl;
 
-    // Print separator line
     for (size_t i = 0; i < displayStateLen + 2; i++) {
         std::cout << "-";
     }
@@ -104,11 +93,9 @@ void DeterministicFiniteAutomaton::PrintAutomaton() const
     }
     std::cout << std::endl;
 
-    // Create a sorted list of states
     std::vector<State> sortedQ(Q.begin(), Q.end());
     std::sort(sortedQ.begin(), sortedQ.end());
 
-    // Print each state and its transitions
     for (const auto& state : sortedQ) {
         bool isInitial = (state == initialState);
         bool isFinal = (finalStates.count(state) > 0);
@@ -120,19 +107,16 @@ void DeterministicFiniteAutomaton::PrintAutomaton() const
 
         std::cout << marker;
 
-        // Print state name, truncating if necessary
         std::string stateName = state;
         if (stateName.length() > displayStateLen) {
             stateName = stateName.substr(0, displayStateLen - 3) + "...";
         }
         std::cout << stateName;
 
-        // Pad to align columns
         for (size_t i = stateName.length(); i < displayStateLen; i++) {
             std::cout << " ";
         }
 
-        // Print transitions for each symbol
         for (const auto& symbol : sortedSigma) {
             std::cout << "| ";
 
@@ -155,14 +139,12 @@ void DeterministicFiniteAutomaton::PrintAutomaton() const
 
     std::cout << "\n" << std::endl;
 
-    // Print legend
     std::cout << "Legend:" << std::endl;
     std::cout << "  -> : Initial state" << std::endl;
     std::cout << "  * : Accept/Final state" << std::endl;
     std::cout << "  ->*: Initial and Accept state" << std::endl;
     std::cout << "  ---: No transition defined" << std::endl;
 
-    // Print statistics
     std::cout << "\n----------------------------------------" << std::endl;
     std::cout << "DFA Statistics:" << std::endl;
     std::cout << "----------------------------------------" << std::endl;

@@ -60,19 +60,17 @@ int main() {
 
         switch (choice) {
             case 1: {
-                // Afisarea formei poloneze postfixate
                 std::string postfix = RegexToDFA::getPostfix(regex);
                 std::cout << "Forma poloneza postfixata: " << postfix << std::endl;
                 break;
             }
             case 2: {
-                // Afisarea arborelui sintactic
-                std::string syntaxTree = RegexToDFA::getSyntaxTree(regex);
-                std::cout << "Arborele sintactic (reprezentare postfixata): " << syntaxTree << std::endl;
+                std::cout << "Arborele sintactic:\n";
+                RegexToDFA::printSyntaxTreeGraph(regex);
+                std::cout << std::endl;
                 break;
             }
             case 3: {
-                // Afisarea automatului M
                 dfa.PrintAutomaton();
                 std::ofstream outFile("./dfa.txt");
                 if (outFile.is_open()) {
@@ -105,7 +103,6 @@ int main() {
                 break;
             }
             case 4: {
-                // Verificarea cuvintelor
                 std::string word;
                 std::cout << "Enter word to check (or 'exit' to stop): ";
                 std::cin >> word;

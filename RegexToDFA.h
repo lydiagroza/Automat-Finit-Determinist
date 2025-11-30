@@ -8,8 +8,7 @@
 #include <vector>
 #include <stack>
 #include <algorithm>
-
-
+#include <sstream>
 
 using State = std::string;
 using Symbol = char;
@@ -19,12 +18,16 @@ struct NFA
 {
     std::set<State> states;
     std::set<Symbol> symbols;
-    std::map<State, std::map<Symbol, std::set<State>>> transitions; // doar in AFN
+    std::map<State, std::map<Symbol, std::set<State>>> transitions;
     State startState;
     std::set<State> finalStates;
-
 };
 
+struct SyntaxNode {
+    char value;
+    SyntaxNode *left = nullptr;
+    SyntaxNode *right = nullptr;
+};
 
 class RegexToDFA
 {
@@ -37,29 +40,21 @@ private:
     }
 
     static int Priority(char op);
-
     static std::string addConcatOperator(const std::string& regex);
-
     static NFA postfixNFA(const std::string& postfix);
-
-    static std::set<State> lambdaClosure(const std::set<State>& states,
-                                          const std::map<State, std::map<Symbol, std::set<State>>>& transitions);
-
+    static std::set<State> lambdaClosure(const std::set<State>& states, const std::map<State, std::map<Symbol, std::set<State>>>& transitions);
     static std::set<State> Move(const NFA& nfa, const std::set<State>& states, Symbol symbol);
-
-    static void NFATODFA(const NFA& nfa,
-                          std::set<State>& dfaStates,
-                          std::set<Symbol>& dfaAlphabet,
-                          TransitionFunction& dfaTransitions,
-                          State& dfaStartState,
-                          std::set<State>& dfaAcceptStates);
-
+    static void NFATODFA(const NFA& nfa, std::set<State>& dfaStates, std::set<Symbol>& dfaAlphabet, TransitionFunction& dfaTransitions, State& dfaStartState, std::set<State>& dfaFinalStates);
     static std::string setToString(const std::set<State>& stateSet);
+
+    static SyntaxNode* buildSyntaxTree(const std::string& postfix);
+    static void printTree(SyntaxNode* node, const std::string& prefix, bool isLeft, std::ostream& out);
 
 public:
     static std::string getPostfix(const std::string& regex);
     static std::string getSyntaxTree(const std::string& regex);
     static std::string regexToPostfix(const std::string& regex);
+    static void printSyntaxTreeGraph(const std::string& regex);
 
     static bool convertRegexToDFA(const std::string& regex,
                                    std::set<State>& states,
@@ -73,8 +68,6 @@ public:
                         const TransitionFunction& delta,
                         const State& initialState,
                         const std::set<State>& finalStates);
-
 };
-
 
 #endif //AUTOMAT_FINIT_DETERMINIST_REGEXTODFA_H

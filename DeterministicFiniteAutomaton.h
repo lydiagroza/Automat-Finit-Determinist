@@ -3,7 +3,7 @@
 #include<set>
 #include<map>
 
-using State=std::string;   //folosim un alias ca sa fie mai sugestiv
+using State=std::string;
 using Symbol=char;
 using TransitionFunction=std::map<State,std::map<Symbol,State>>;
 
@@ -11,11 +11,11 @@ using TransitionFunction=std::map<State,std::map<Symbol,State>>;
 
 class DeterministicFiniteAutomaton{
 private:
-    std::set<State>Q;  //multimea starilor
-    std::set<Symbol>Sigma;  //alfabetul din care este format cuvantul
-    TransitionFunction Delta; // functia de tranzitie,inca nu stiu exact ce e
-    State initialState; //starea initial
-    std::set<State> finalStates; // multimea starilor finale
+    std::set<State>Q;
+    std::set<Symbol>Sigma;
+    TransitionFunction Delta;
+    State initialState;
+    std::set<State> finalStates;
 
 
 public:
