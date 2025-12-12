@@ -12,6 +12,7 @@ bool DeterministicFiniteAutomaton::VerifyAutomaton() const
             return false;
         }
     }
+    // am verificat daca stariile initiale si starile finale sunt unde trebuie sa fie
 
     for (const auto& state_entry : Delta) {
         const State& from_state = state_entry.first;
@@ -36,6 +37,7 @@ bool DeterministicFiniteAutomaton::VerifyAutomaton() const
     }
     return true;
 }
+// basic erori pentru stari alfabet si simboluri
 
 void DeterministicFiniteAutomaton::PrintAutomaton() const
 {
@@ -187,6 +189,6 @@ bool DeterministicFiniteAutomaton::CheckWord(const std::string& word) {
     }
     if (finalStates.count(currentState) == 0) {
         return false;
-    }
+    } // dupa ce am terminat de verificat literele din cuvant, verificam daca ultima stare e finala
     return true;
 }

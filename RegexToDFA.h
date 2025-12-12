@@ -69,5 +69,4 @@ public:
                         const State& initialState,
                         const std::set<State>& finalStates);
 };
-
 #endif //AUTOMAT_FINIT_DETERMINIST_REGEXTODFA_H

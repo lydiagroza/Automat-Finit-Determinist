@@ -160,7 +160,7 @@ NFA RegexToDFA::postfixNFA(const std::string& postfix) {
             nfa1.symbols.insert(nfa2.symbols.begin(), nfa2.symbols.end());
             for (const auto& finalState : nfa1.finalStates) {
                 nfa1.transitions[finalState]['\0'].insert(nfa2.startState);
-            }
+            } //
             nfa1.finalStates = nfa2.finalStates;
             nfa1.transitions.insert(nfa2.transitions.begin(), nfa2.transitions.end());
             nfaStack.push(nfa1);
@@ -230,7 +230,7 @@ std::set<State> RegexToDFA::lambdaClosure(const std::set<State>& states, const s
     return closure;
 }
 
-std::set<State> RegexToDFA::Move(const NFA& nfa, const std::set<State>& states, Symbol symbol) {
+std::set<State> RegexToDFA::Move(const NFA& nfa, const std::set<State>& states, Symbol symbol) {  // varificam toate starile la care putem ajunge cu un symbol
     std::set<State> result;
     for (const auto& state : states) {
         if (nfa.transitions.count(state) && nfa.transitions.at(state).count(symbol)) {
@@ -273,7 +273,7 @@ void RegexToDFA::NFATODFA(const NFA& nfa, std::set<State>& dfaStates, std::set<S
         }
     }
 
-    while (!unmarkedStates.empty()) {
+    while (!unmarkedStates.empty()) { // procesam fiecare P nevizitat, ii calculam tranzitiile pentru fiecare symbol
         std::set<State> currentSet = unmarkedStates.top();
         unmarkedStates.pop();
         State currentStateName = stateSetMap[currentSet];
